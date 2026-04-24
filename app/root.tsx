@@ -5,10 +5,14 @@ import {
     Outlet,
     Scripts,
     ScrollRestoration,
+    type MiddlewareFunction,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { verifyAuthTokens } from "./db/middlewares/verifyAuthTokens";
+
+export const middleware: MiddlewareFunction[] = [verifyAuthTokens];
 
 export const links: Route.LinksFunction = () => [
     { rel: "preconnect", href: "https://fonts.googleapis.com" },

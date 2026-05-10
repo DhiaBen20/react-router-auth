@@ -1,22 +1,21 @@
 import type { JWTPayload } from "jose";
 import { jwtVerify, SignJWT } from "jose";
+import { randomBytes } from "node:crypto";
 import z from "zod";
+import { authCookie, refreshCookie } from "./cookies";
 
-const AuthTokenPayloadSchema = z.object({
+export const AuthTokenPayloadSchema = z.object({
     type: z.literal("auth"),
     userId: z.number(),
-    emailVerified: z.boolean().optional(),
+    emailVerified: z.boolean(),
 });
-
-export type AuthTokenPayload = JWTPayload &
-    z.infer<typeof AuthTokenPayloadSchema>;
 
 export function jwtKey() {
     return new TextEncoder().encode(process.env.JWT_KEY!);
 }
 
 export function signAuthToken(
-    payload: AuthTokenPayload,
+    payload: JWTPayload & z.infer<typeof AuthTokenPayloadSchema>,
     expiry: string | Date | number,
 ) {
     return new SignJWT(payload)
@@ -30,7 +29,26 @@ export async function verifyAuthToken(token: string) {
     const verifyResult = await jwtVerify(token, jwtKey());
     const parseResult = AuthTokenPayloadSchema.safeParse(verifyResult.payload);
 
-    if (parseResult.success) return {...verifyResult.payload,...parseResult.data};
+    if (parseResult.success)
+        return { ...verifyResult.payload, ...parseResult.data };
 
     return null;
+}
+
+export function generateRefreshToken() {
+    return randomBytes(64).toString("hex");
+}
+
+export async function getCurrentAuthTokens(request: Request) {
+    const cookie = request.headers.get("Cookie");
+
+    const [authToken, refreshToken] = await Promise.all([
+        authCookie.parse(cookie),
+        refreshCookie.parse(cookie),
+    ]);
+
+    return {
+        authToken: typeof authToken === "string" ? authToken : null,
+        refreshToken: typeof refreshToken === "string" ? refreshToken : null,
+    };
 }

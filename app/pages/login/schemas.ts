@@ -1,28 +1,9 @@
-import z, { type RefinementCtx } from "zod";
-import { checkAuthCredentials } from "~/utils/auth";
+import z from "zod";
 
 export const LoginSchema = z.object({
-    email: z.email(),
+    email: z.email().min(1, "Email is required"),
     password: z
         .string("Password is required")
+        .min(1, "Password is required")
         .min(8, "Password must be at least 8 characters long"),
 });
-
-export async function validateCredentials(
-    data: z.infer<typeof LoginSchema>,
-    ctx: RefinementCtx,
-) {
-    const user = await checkAuthCredentials(data);
-
-    if (!user) {
-        ctx.addIssue({
-            code: "custom",
-            path: ["email"],
-            message: "Invalid credentials",
-        });
-
-        return z.NEVER;
-    }
-
-    return { ...data, user };
-}

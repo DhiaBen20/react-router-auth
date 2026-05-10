@@ -1,12 +1,12 @@
-import z, { type RefinementCtx } from "zod";
-import { findUserByEmail } from "~/models/user";
+import z from "zod";
 
 export const RegisterSchema = z
     .object({
-        name: z.string("Name is required"),
-        email: z.email(),
+        name: z.string("Name is required").min(1, "Name is required"),
+        email: z.email().min(1, "Email is required"),
         password: z
             .string("Password is Required")
+            .min(1, "Password is required")
             .min(8, "Password must be at least 8 characters long"),
         passwordConfirmation: z.string("Password confirmation is required"),
     })
@@ -14,17 +14,3 @@ export const RegisterSchema = z
         error: "Passwords don't match",
         path: ["passwordConfirmation"],
     });
-
-export async function uniqueEmailRefinement(
-    data: z.infer<typeof RegisterSchema>,
-    ctx: RefinementCtx,
-) {
-    const user = await findUserByEmail(data.email);
-
-    if (user)
-        ctx.addIssue({
-            code: "custom",
-            path: ["email"],
-            message: "Email is already in use",
-        });
-}

@@ -1,17 +1,12 @@
 import { compare, hash } from "bcrypt";
-import { createCookie } from "react-router";
 import type z from "zod";
-import type { User } from "~/db/schema";
+import { type User } from "~/db/schema";
+import { createRefreshToken } from "~/models/refreshToken";
 import { createUser, findUserByEmail } from "~/models/user";
 import { RegisterSchema } from "~/pages/register/schemas";
-import { signAuthToken, type AuthTokenPayload } from "./auth-tokens";
-
-export const authCookie = createCookie("auth-token", {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 15 * 60,
-});
+import { generateRefreshToken, signAuthToken } from "./auth-tokens";
+import type { AuthContext } from "./contexts";
+import { authCookie, refreshCookie } from "./cookies";
 
 export async function checkAuthCredentials({
     email,
@@ -25,11 +20,11 @@ export async function checkAuthCredentials({
     return user && (await compare(password, user.password)) ? user : null;
 }
 
-export function isAuthenticated(claims: AuthTokenPayload | null) {
-    return claims && claims.type === "auth";
+export function isAuthenticated(authContext: AuthContext) {
+    return authContext && authContext.type === "auth";
 }
 
-export async function login(user: User) {
+export async function login(user: User, headers: Headers = new Headers()) {
     const jwt = await signAuthToken(
         {
             type: "auth",
@@ -39,12 +34,16 @@ export async function login(user: User) {
         "15m",
     );
 
-    const headers = new Headers();
+    const refreshToken = generateRefreshToken();
 
-    headers.append(
-        "Set-Cookie",
-        await authCookie.serialize(jwt, { maxAge: 15 * 1000 }),
-    );
+    await createRefreshToken({
+        refreshToken: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        userId: user.id,
+    });
+
+    headers.append("Set-Cookie", await authCookie.serialize(jwt));
+    headers.append("Set-Cookie", await refreshCookie.serialize(refreshToken));
 
     return headers;
 }

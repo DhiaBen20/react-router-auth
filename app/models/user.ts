@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "~/db/client";
-import { users } from "~/db/schema";
+import { users, type User } from "~/db/schema";
 
 export async function createUser(data: typeof users.$inferInsert) {
     const user = await db.insert(users).values(data).returning();
@@ -8,14 +8,18 @@ export async function createUser(data: typeof users.$inferInsert) {
     return user[0];
 }
 
-export async function findUserByEmail(
-    email: (typeof users.$inferInsert)["email"],
-) {
+export async function findUserByEmail(email: User["email"]) {
     const user = await db
         .select()
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
+
+    return user.length ? user[0] : null;
+}
+
+export async function findUser(id: User["id"]) {
+    const user = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
     return user.length ? user[0] : null;
 }

@@ -1,13 +1,13 @@
-import { redirect, type MiddlewareFunction } from "react-router";
-import { flattenError } from "zod";
-import { requireGuest } from "~/db/middlewares/requireGuest";
+import { redirect } from "react-router";
+import { flattenError, NEVER } from "zod";
+import { requireGuest } from "~/middlewares/requireGuest";
 import LoginCard from "~/pages/login/components/LoginCard";
 import LoginForm from "~/pages/login/components/LoginForm";
-import { LoginSchema, validateCredentials } from "~/pages/login/schemas";
-import { login } from "~/utils/auth";
+import { LoginSchema } from "~/pages/login/schemas";
+import { checkAuthCredentials, login } from "~/utils/auth";
 import type { Route } from "./+types/login";
 
-export const middleware: MiddlewareFunction[] = [requireGuest];
+export const middleware: Route.MiddlewareFunction[] = [requireGuest];
 
 export function loader() {
     return null;
@@ -16,9 +16,21 @@ export function loader() {
 export async function action({ request }: Route.ActionArgs) {
     const formData = await request.formData();
 
-    const parseResult = await LoginSchema.transform(
-        validateCredentials,
-    ).safeParseAsync(Object.fromEntries(formData));
+    const parseResult = await LoginSchema.transform(async (data, ctx) => {
+        const user = await checkAuthCredentials(data);
+
+        if (!user) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["email"],
+                message: "Invalid credentials",
+            });
+
+            return NEVER;
+        }
+
+        return { ...data, user };
+    }).safeParseAsync(Object.fromEntries(formData));
 
     if (!parseResult.success) {
         return { ok: false as const, errors: flattenError(parseResult.error) };

@@ -1,4 +1,5 @@
 import { compare, hash } from "bcrypt";
+import type { CookieSerializeOptions } from "react-router";
 import type z from "zod";
 import { type User } from "~/db/schema";
 import { createRefreshToken } from "~/models/refreshToken";
@@ -24,7 +25,11 @@ export function isAuthenticated(authContext: AuthContext) {
     return authContext && authContext.type === "auth";
 }
 
-export async function login(user: User, headers: Headers = new Headers()) {
+export async function login(
+    user: User,
+    remember: boolean = true,
+    headers: Headers = new Headers(),
+) {
     const jwt = await signAuthToken(
         {
             type: "auth",
@@ -36,14 +41,27 @@ export async function login(user: User, headers: Headers = new Headers()) {
 
     const refreshToken = generateRefreshToken();
 
+    const nextHour = new Date(Date.now() + 60 * 60 * 1000);
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
     await createRefreshToken({
         refreshToken: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: remember ? nextWeek : nextHour,
         userId: user.id,
+        rememberMe: remember,
     });
 
-    headers.append("Set-Cookie", await authCookie.serialize(jwt));
-    headers.append("Set-Cookie", await refreshCookie.serialize(refreshToken));
+    const cookieExpire: CookieSerializeOptions | undefined = remember
+        ? undefined
+        : { maxAge: undefined };
+
+    await Promise.all([
+        authCookie.serialize(jwt, cookieExpire),
+        refreshCookie.serialize(refreshToken, cookieExpire),
+    ]).then((c) => {
+        headers.append("Set-Cookie", c[0]);
+        headers.append("Set-Cookie", c[1]);
+    });
 
     return headers;
 }

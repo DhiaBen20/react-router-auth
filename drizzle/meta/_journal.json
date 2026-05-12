@@ -15,6 +15,13 @@
       "when": 1778297756805,
       "tag": "0001_sticky_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778555761662,
+      "tag": "0002_fluffy_nick_fury",
+      "breakpoints": true
     }
   ]
 }

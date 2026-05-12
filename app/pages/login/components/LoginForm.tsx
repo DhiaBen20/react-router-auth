@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
     Form,
     Link,
@@ -9,11 +9,12 @@ import {
     useSubmit,
 } from "react-router";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import PasswordInput from "~/components/ui/password-input";
-import { LoginSchema } from "../schemas";
 import type { Route as LoginRoute } from "../../../routes/auth/+types/login";
+import { LoginSchema } from "../schemas";
 
 export default function LoginForm() {
     const {
@@ -21,6 +22,7 @@ export default function LoginForm() {
         formState: { errors },
         handleSubmit,
         setError,
+        control,
     } = useForm({
         resolver: zodResolver(LoginSchema),
     });
@@ -80,6 +82,28 @@ export default function LoginForm() {
                 />
                 {errors.password && <FieldError errors={[errors.password]} />}
             </Field>
+
+            <Field className="flex-row"></Field>
+
+            <Controller
+                control={control}
+                name="rememberMe"
+                render={({ field }) => (
+                    <Field orientation="horizontal">
+                        <Checkbox
+                            id="rememberMe"
+                            name={field.name}
+                            onCheckedChange={field.onChange}
+                        />
+                        <FieldLabel
+                            htmlFor="rememberMe"
+                            className="text-muted-foreground"
+                        >
+                            Remember Me
+                        </FieldLabel>
+                    </Field>
+                )}
+            />
 
             <Button className="w-full" isLoading={isSubmitting}>
                 Sign in

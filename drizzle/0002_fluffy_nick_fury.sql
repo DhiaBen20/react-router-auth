@@ -1,0 +1,1 @@
+ALTER TABLE `refresh_tokens` ADD `remember_me` integer NOT NULL;

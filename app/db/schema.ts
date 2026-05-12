@@ -14,6 +14,7 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
     refreshToken: text("refresh_token").notNull(),
     expiresAt: int("expires_at", { mode: "timestamp" }).notNull(),
     usedAt: int("used_at", { mode: "timestamp" }),
+    rememberMe: int("remember_me", { mode: "boolean" }).notNull(),
     userId: int("user_id")
         .references(() => users.id)
         .notNull(),

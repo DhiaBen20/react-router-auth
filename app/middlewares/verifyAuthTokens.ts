@@ -46,7 +46,7 @@ export const verifyAuthTokens: MiddlewareFunction<Response> = async (
     const response = await next();
     await Promise.all([
         updateRefreshToken(tokenMatch.id, { usedAt: new Date() }),
-        login(user, response.headers),
+        login(user, tokenMatch.rememberMe, response.headers),
     ]);
     return response;
 };

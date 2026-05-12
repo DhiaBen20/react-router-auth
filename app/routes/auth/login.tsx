@@ -36,7 +36,10 @@ export async function action({ request }: Route.ActionArgs) {
         return { ok: false as const, errors: flattenError(parseResult.error) };
     }
 
-    const headers = await login(parseResult.data.user);
+    const headers = await login(
+        parseResult.data.user,
+        parseResult.data.rememberMe,
+    );
 
     throw redirect("/", { headers });
 }

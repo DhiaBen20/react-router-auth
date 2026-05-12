@@ -6,4 +6,5 @@ export const LoginSchema = z.object({
         .string("Password is required")
         .min(1, "Password is required")
         .min(8, "Password must be at least 8 characters long"),
+    rememberMe: z.transform((v) => (typeof v === "boolean" ? v : v === "true")),
 });

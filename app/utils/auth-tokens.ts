@@ -5,7 +5,7 @@ import z from "zod";
 import { authCookie, refreshCookie } from "./cookies";
 
 export const AuthTokenPayloadSchema = z.object({
-    type: z.literal("auth"),
+    type: z.union([z.literal("auth"), z.literal("reset-password")]),
     userId: z.number(),
     emailVerified: z.boolean(),
 });
@@ -51,4 +51,16 @@ export async function getCurrentAuthTokens(request: Request) {
         authToken: typeof authToken === "string" ? authToken : null,
         refreshToken: typeof refreshToken === "string" ? refreshToken : null,
     };
+}
+
+export async function destroyAuthCookies(headers = new Headers()) {
+    headers.append(
+        "Set-Cookie",
+        await authCookie.serialize("", { maxAge: -1 }),
+    );
+
+    headers.append(
+        "Set-Cookie",
+        await refreshCookie.serialize("", { maxAge: -1 }),
+    );
 }

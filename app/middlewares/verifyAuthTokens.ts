@@ -33,9 +33,8 @@ export const verifyAuthTokens: MiddlewareFunction<Response> = async (
     if (!refreshToken) return;
 
     const tokenMatch = await findValidRefreshToken(refreshToken);
-    if (!tokenMatch) return;
-    const user = await findUser(tokenMatch.userId)!;
-    if (!user) return;
+    const user = tokenMatch && (await findUser(tokenMatch.userId));
+    if (!tokenMatch || !user) return;
 
     context.set(authContext, {
         type: "auth",

@@ -23,3 +23,12 @@ export async function findUser(id: User["id"]) {
 
     return user.length ? user[0] : null;
 }
+
+export function updateUserPassword(userId: User["id"], passwordHash: string) {
+    return db
+        .update(users)
+        .set({
+            password: passwordHash,
+        })
+        .where(eq(users.id, userId));
+}

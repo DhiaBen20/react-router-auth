@@ -50,7 +50,6 @@ export default function LoginForm() {
 
     return (
         <Form
-            noValidate
             method="post"
             className="space-y-4"
             onSubmit={handleSubmit((data) => submit(data, { method: "post" }))}

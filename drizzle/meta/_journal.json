@@ -22,6 +22,13 @@
       "when": 1778555761662,
       "tag": "0002_fluffy_nick_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778725879141,
+      "tag": "0003_hesitant_paper_doll",
+      "breakpoints": true
     }
   ]
 }

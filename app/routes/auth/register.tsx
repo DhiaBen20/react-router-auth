@@ -4,7 +4,7 @@ import { requireGuest } from "~/middlewares/requireGuest";
 import { findUserByEmail } from "~/models/user";
 import RegisterCard from "~/pages/register/components/RegisterCard";
 import RegisterForm from "~/pages/register/components/RegisterForm";
-import { RegisterSchema } from "~/pages/register/schemas";
+import { RegisterSchema } from "~/pages/register/components/RegisterForm";
 import { register } from "~/utils/auth";
 import type { Route } from "./+types/register";
 

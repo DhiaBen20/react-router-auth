@@ -1,8 +1,16 @@
 import { useState } from "react";
+import { requireGuest } from "~/middlewares/requireGuest";
 import ForgotPasswordCard from "~/pages/forgot-password/components/ForgotPasswordCard";
-import ForgotPasswordForm from "~/pages/forgot-password/components/ForgotPasswordForm";
-import ResetCodeVerificationCard from "~/pages/forgot-password/components/ResetCodeVerificationCard";
-import ResetCodeVerificationForm from "~/pages/forgot-password/components/ResetCodeVerificationForm";
+import PasswordResetCodeCard from "~/pages/forgot-password/components/PasswordResetCodeCard";
+import RequestCodeForm from "~/pages/forgot-password/components/RequestCodeForm";
+import ResendCodeForm from "~/pages/forgot-password/components/ResendCodeForm";
+import VerifyCodeForm from "~/pages/forgot-password/components/VerifyCodeForm";
+
+export const middleware = [requireGuest];
+
+export function loader() {
+    return null;
+}
 
 export default function ForgotPassword() {
     const [submittedEmail, setSubmittedEmail] = useState("");
@@ -11,12 +19,13 @@ export default function ForgotPassword() {
         <>
             {!submittedEmail ? (
                 <ForgotPasswordCard>
-                    <ForgotPasswordForm onSubmitSuccess={setSubmittedEmail} />
+                    <RequestCodeForm onSubmitSuccess={setSubmittedEmail} />
                 </ForgotPasswordCard>
             ) : (
-                <ResetCodeVerificationCard>
-                    <ResetCodeVerificationForm email={submittedEmail} />
-                </ResetCodeVerificationCard>
+                <PasswordResetCodeCard>
+                    <VerifyCodeForm email={submittedEmail} />
+                    <ResendCodeForm email={submittedEmail} />
+                </PasswordResetCodeCard>
             )}
         </>
     );

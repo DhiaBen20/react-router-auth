@@ -4,7 +4,7 @@ import type z from "zod";
 import { type User } from "~/db/schema";
 import { createRefreshToken } from "~/models/refreshToken";
 import { createUser, findUserByEmail } from "~/models/user";
-import { RegisterSchema } from "~/pages/register/schemas";
+import { RegisterSchema } from "~/pages/register/components/RegisterForm";
 import { generateRefreshToken, signAuthToken } from "./auth-tokens";
 import type { AuthContext } from "./contexts";
 import { authCookie, refreshCookie } from "./cookies";

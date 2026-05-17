@@ -2,12 +2,13 @@ import { hash } from "bcrypt";
 import { redirect } from "react-router";
 import { flattenError } from "zod";
 import { updateUserPassword } from "~/models/user";
-import ResetPasswordCard from "~/pages/reset-password/ResetPasswordCard";
-import ResetPasswordForm from "~/pages/reset-password/ResetPasswordForm";
-import ResetPasswordSchema from "~/pages/reset-password/schemas/ResetPasswordSchema";
+import ResetPasswordForm, {
+    ResetPasswordSchema,
+} from "~/pages/reset-password/components/ResetPasswordForm";
 import { destroyAuthCookies } from "~/utils/auth-tokens";
 import { authContext } from "~/utils/contexts";
 import type { Route } from "./+types/reset-password";
+import ResetPasswordCard from "~/pages/reset-password/components/ResetPasswordCard";
 
 export const middleware: Route.MiddlewareFunction[] = [
     function ({ context }) {

@@ -15,5 +15,9 @@ export default [
             route("verify-code", "routes/auth/verify-reset-code.tsx"),
         ]),
         route("/reset-password", "routes/auth/reset-password.tsx"),
+        route("/verify-email", "routes/auth/verify-email.tsx", [
+            route("send-code", "routes/auth/send-verification-code.tsx"),
+            route("verify-code", "routes/auth/confirm-verification-code.tsx"),
+        ]),
     ]),
 ] satisfies RouteConfig;

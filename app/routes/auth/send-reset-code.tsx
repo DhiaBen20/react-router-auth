@@ -1,12 +1,12 @@
 import { flattenError } from "zod";
 import { createOtp } from "~/models/otp";
 import { findUserByEmail } from "~/models/user";
-import { SendResetCodeSchema } from "~/pages/forgot-password/schemas/SendResetCodeSchema";
-import { generateOtp, generateOtpExpiryDate, hashOtp } from "~/utils/otp";
+import { RequestCodeSchema } from "~/pages/forgot-password/components/RequestCodeForm";
+import { generateOtp, calculateOtpExpiryDate, hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/send-reset-code";
 
 export async function action({ request }: Route.ActionArgs) {
-    const parseResult = SendResetCodeSchema.safeParse(
+    const parseResult = RequestCodeSchema.safeParse(
         Object.fromEntries(await request.formData()),
     );
 
@@ -23,7 +23,7 @@ export async function action({ request }: Route.ActionArgs) {
     await createOtp({
         otpHash: hashOtp(randomCode),
         userId: user.id,
-        expiresAt: generateOtpExpiryDate(),
+        expiresAt: calculateOtpExpiryDate(),
     });
 
     console.log({ otp: randomCode });

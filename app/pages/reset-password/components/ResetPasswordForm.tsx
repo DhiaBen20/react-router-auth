@@ -5,8 +5,21 @@ import { Form, useActionData, useSubmit } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import PasswordInput from "~/components/ui/password-input";
-import type { Route } from "../../routes/auth/+types/reset-password";
-import ResetPasswordSchema from "./schemas/ResetPasswordSchema";
+import type { Route } from "../../../routes/auth/+types/reset-password";
+import z from "zod";
+
+export const ResetPasswordSchema = z
+    .object({
+        password: z
+            .string("Password is Required")
+            .min(1, "Password is required")
+            .min(8, "Password must be at least 8 characters long"),
+        passwordConfirmation: z.string("Password confirmation is required"),
+    })
+    .refine((data) => data.password === data.passwordConfirmation, {
+        error: "Passwords don't match",
+        path: ["passwordConfirmation"],
+    });
 
 export default function ResetPasswordForm() {
     const {

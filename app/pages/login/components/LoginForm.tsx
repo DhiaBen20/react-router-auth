@@ -6,6 +6,7 @@ import {
     Link,
     useActionData,
     useNavigation,
+    useSearchParams,
     useSubmit,
 } from "react-router";
 import { Button } from "~/components/ui/button";
@@ -14,7 +15,17 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import PasswordInput from "~/components/ui/password-input";
 import type { Route as LoginRoute } from "../../../routes/auth/+types/login";
-import { LoginSchema } from "../schemas";
+import z from "zod";
+
+export const LoginSchema = z.object({
+    email: z.email().min(1, "Email is required"),
+    password: z
+        .string("Password is required")
+        .min(1, "Password is required")
+        .min(8, "Password must be at least 8 characters long"),
+    rememberMe: z.transform((v) => (typeof v === "boolean" ? v : v === "true")),
+    returnTo: z.string(),
+});
 
 export default function LoginForm() {
     const {
@@ -26,6 +37,8 @@ export default function LoginForm() {
     } = useForm({
         resolver: zodResolver(LoginSchema),
     });
+
+    const [searchParams] = useSearchParams();
 
     const actionData = useActionData<LoginRoute.ComponentProps["actionData"]>();
     const submit = useSubmit();
@@ -54,6 +67,19 @@ export default function LoginForm() {
             className="space-y-4"
             onSubmit={handleSubmit((data) => submit(data, { method: "post" }))}
         >
+            <input
+                type="hidden"
+                name="returnTo"
+                value={searchParams.get("returnTo") ?? ""}
+            />
+
+            <input
+                type="hidden"
+                {...register("returnTo", {
+                    value: searchParams.get("returnTo") ?? "",
+                })}
+            />
+
             <Field data-invalid={errors.email ? true : false}>
                 <FieldLabel htmlFor="email">Email address</FieldLabel>
                 <Input

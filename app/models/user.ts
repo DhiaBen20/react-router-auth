@@ -24,11 +24,16 @@ export async function findUser(id: User["id"]) {
     return user.length ? user[0] : null;
 }
 
-export function updateUserPassword(userId: User["id"], passwordHash: string) {
-    return db
+export async function updateUser(userId: User["id"], updates: Partial<User>) {
+    const result = await db
         .update(users)
-        .set({
-            password: passwordHash,
-        })
-        .where(eq(users.id, userId));
+        .set(updates)
+        .where(eq(users.id, userId))
+        .returning();
+
+    return result[0];
+}
+
+export function updateUserPassword(userId: User["id"], passwordHash: string) {
+    return updateUser(userId, { password: passwordHash });
 }

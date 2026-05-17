@@ -9,6 +9,6 @@ export function hashOtp(code: string) {
     return createHash("sha256").update(code).digest("hex");
 }
 
-export function generateOtpExpiryDate() {
+export function calculateOtpExpiryDate() {
     return new Date(Date.now() + OTP_EXPIRY_MS);
 }

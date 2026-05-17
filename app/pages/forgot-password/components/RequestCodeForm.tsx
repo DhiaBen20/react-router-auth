@@ -6,9 +6,13 @@ import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import type { Route } from "../../../routes/auth/+types/send-reset-code";
-import { SendResetCodeSchema } from "../schemas/SendResetCodeSchema";
+import z from "zod";
 
-export default function ForgotPasswordForm({
+export const RequestCodeSchema = z.object({
+    email: z.email().min(1, "Email is required"),
+});
+
+export default function RequestCodeForm({
     onSubmitSuccess,
 }: {
     onSubmitSuccess: (email: string) => void;
@@ -20,7 +24,7 @@ export default function ForgotPasswordForm({
         formState: { errors },
         getValues,
     } = useForm({
-        resolver: zodResolver(SendResetCodeSchema),
+        resolver: zodResolver(RequestCodeSchema),
     });
 
     const fetcher = useFetcher<Route.ComponentProps["actionData"]>();

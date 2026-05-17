@@ -7,7 +7,7 @@ import {
     CardTitle,
 } from "~/components/ui/card";
 
-export default function ResetCodeVerificationCard({
+export default function EmailVerificationCodeCard({
     children,
 }: {
     children: ReactNode;

@@ -6,13 +6,13 @@ import { VerifyCodeSchema } from "~/pages/verify-email/components/VerifyCodeForm
 import { signAuthToken } from "~/utils/auth-tokens";
 import { authContext } from "~/utils/contexts";
 import { authCookie } from "~/utils/cookies";
-import { getReturnTo, isSafePath, requestBody } from "~/utils/http";
+import { getReturnTo, isSafePath, getFormDataToObject } from "~/utils/http";
 import { hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/confirm-verification-code";
 
 export async function action({ request, context }: Route.ActionArgs) {
     const auth = context.get(authContext)!;
-    const form = await requestBody(request);
+    const form = await getFormDataToObject(request);
 
     const parseResult = await VerifyCodeSchema.transform(
         async ({ code }, ctx) => {

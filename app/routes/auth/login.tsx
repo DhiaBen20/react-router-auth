@@ -4,7 +4,7 @@ import { requireGuest } from "~/middlewares/requireGuest";
 import LoginCard from "~/pages/login/components/LoginCard";
 import LoginForm, { LoginSchema } from "~/pages/login/components/LoginForm";
 import { checkAuthCredentials, login } from "~/utils/auth";
-import { getReturnTo, isSafePath, requestBody } from "~/utils/http";
+import { getFormDataToObject, getReturnTo, isSafePath } from "~/utils/http";
 import type { Route } from "./+types/login";
 
 export const middleware: Route.MiddlewareFunction[] = [requireGuest];
@@ -14,7 +14,7 @@ export function loader() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-    const formData = await requestBody(request);
+    const formData = await getFormDataToObject(request);
 
     const parseResult = await LoginSchema.transform(async (data, ctx) => {
         const user = await checkAuthCredentials(data);

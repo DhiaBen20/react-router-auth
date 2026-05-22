@@ -1,4 +1,4 @@
-export async function requestBody(request: Request) {
+export async function getFormDataToObject(request: Request) {
     const formData = await request.formData();
 
     return Object.fromEntries(formData);

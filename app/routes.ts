@@ -20,4 +20,23 @@ export default [
             route("verify-code", "routes/auth/confirm-verification-code.tsx"),
         ]),
     ]),
+    layout("./components/layouts/settings-layout.tsx", [
+        route("/settings/profile", "routes/settings/profile.tsx"),
+        route("/settings/security", "routes/settings/security.tsx", [
+            route("update-password", "routes/settings/update-password.tsx"),
+            route("enable-two-factor", "routes/settings/enable-two-factor.tsx"),
+            route(
+                "confirm-two-factor",
+                "routes/settings/confirm-two-factor.tsx",
+            ),
+            route(
+                "disable-two-factor",
+                "routes/settings/disable-two-factor.tsx",
+            ),
+            route(
+                "generate-recovery-codes",
+                "routes/settings/generate-recovery-codes.tsx",
+            ),
+        ]),
+    ]),
 ] satisfies RouteConfig;

@@ -63,40 +63,39 @@ export default function VerifyCodeForm() {
                     value: searchParams.get("returnTo") ?? "",
                 })}
             />
-            <div>
-                <Controller
-                    control={control}
-                    name="code"
-                    render={({ field }) => (
-                        <Field data-invalid={errors.code ? true : false}>
-                            <InputOTP
-                                maxLength={6}
-                                pattern={REGEXP_ONLY_DIGITS}
-                                containerClassName="justify-center"
-                                {...field}
-                            >
-                                <InputOTPGroup>
-                                    {Array.from({ length: 6 }).map((_, i) => (
-                                        <InputOTPSlot
-                                            key={i}
-                                            index={i}
-                                            aria-invalid={
-                                                errors.code ? true : undefined
-                                            }
-                                        />
-                                    ))}
-                                </InputOTPGroup>
-                            </InputOTP>
-                            {errors.code && (
-                                <FieldError
-                                    className="text-center"
-                                    errors={[errors.code]}
-                                />
-                            )}
-                        </Field>
-                    )}
-                />
-            </div>
+            <Controller
+                control={control}
+                name="code"
+                render={({ field }) => (
+                    <Field data-invalid={errors.code ? true : false}>
+                        <InputOTP
+                            maxLength={6}
+                            pattern={REGEXP_ONLY_DIGITS}
+                            containerClassName="justify-center"
+                            {...field}
+                        >
+                            <InputOTPGroup>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <InputOTPSlot
+                                        key={i}
+                                        index={i}
+                                        aria-invalid={
+                                            errors.code ? true : undefined
+                                        }
+                                    />
+                                ))}
+                            </InputOTPGroup>
+                        </InputOTP>
+                        {errors.code && (
+                            <FieldError
+                                className="text-center"
+                                errors={[errors.code]}
+                            />
+                        )}
+                    </Field>
+                )}
+            />
+
             <Button
                 className="w-full"
                 isLoading={fetcher.state === "submitting"}

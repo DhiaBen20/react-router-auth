@@ -6,6 +6,6 @@ export type AuthContext = {
     type: z.infer<typeof AuthTokenPayloadSchema>["type"];
     userId: number;
     emailVerified: boolean;
-} | null;
+};
 
-export const authContext = createContext<AuthContext>(null);
+export const authContext = createContext<AuthContext | null>(null);

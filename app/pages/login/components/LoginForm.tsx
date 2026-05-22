@@ -9,13 +9,13 @@ import {
     useSearchParams,
     useSubmit,
 } from "react-router";
+import z from "zod";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import PasswordInput from "~/components/ui/password-input";
 import type { Route as LoginRoute } from "../../../routes/auth/+types/login";
-import z from "zod";
 
 export const LoginSchema = z.object({
     email: z.email().min(1, "Email is required"),

@@ -1,12 +1,12 @@
 import { compare, hash } from "bcrypt";
-import type { CookieSerializeOptions } from "react-router";
+import type { ActionFunctionArgs, CookieSerializeOptions } from "react-router";
 import type z from "zod";
 import { type User } from "~/db/schema";
 import { createRefreshToken } from "~/models/refreshToken";
-import { createUser, findUserByEmail } from "~/models/user";
+import { createUser, findUser, findUserByEmail } from "~/models/user";
 import { RegisterSchema } from "~/pages/register/components/RegisterForm";
 import { generateRefreshToken, signAuthToken } from "./auth-tokens";
-import type { AuthContext } from "./contexts";
+import { authContext, type AuthContext } from "./contexts";
 import { authCookie, refreshCookie } from "./cookies";
 
 export async function checkAuthCredentials({
@@ -21,7 +21,7 @@ export async function checkAuthCredentials({
     return user && (await compare(password, user.password)) ? user : null;
 }
 
-export function isAuthenticated(authContext: AuthContext) {
+export function isAuthenticated(authContext: AuthContext | null) {
     return authContext && authContext.type === "auth";
 }
 
@@ -74,4 +74,32 @@ export async function register(data: z.infer<typeof RegisterSchema>) {
         name: data.name,
         password: passwordHash,
     });
+}
+
+export function getRequiredAuth(
+    context: ActionFunctionArgs["context"],
+): AuthContext {
+    const value = context.get(authContext);
+
+    if (!value) {
+        throw new Error(
+            "Missing auth context. Make sure requireAuth middleware is used",
+        );
+    }
+
+    return value;
+}
+
+export async function getRequiredUser(
+    context: ActionFunctionArgs["context"],
+): Promise<User> {
+    const auth = getRequiredAuth(context);
+
+    const user = await findUser(auth.userId);
+
+    if (!user) {
+        throw new Error("Auth user is not found");
+    }
+
+    return user;
 }

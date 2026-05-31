@@ -3,11 +3,11 @@ import type { ActionFunctionArgs } from "react-router";
 import { flattenError } from "zod";
 import { updateUserPassword } from "~/models/user";
 import { UpdatePasswordSchema } from "~/pages/settings/UpdatePasswordForm";
-import { getRequiredUser } from "~/utils/auth";
+import { requireAuthUser } from "~/utils/auth-gurads";
 import { getFormDataToObject } from "~/utils/http";
 
 export async function action({ context, request }: ActionFunctionArgs) {
-    const user = await getRequiredUser(context);
+    const user = await requireAuthUser(context);
 
     const formData = await getFormDataToObject(request);
 

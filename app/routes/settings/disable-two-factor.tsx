@@ -1,11 +1,11 @@
 import { deleteTwoFactorForUser } from "~/models/twoFactor";
-import { getRequiredAuth } from "~/utils/auth";
+import { requireAuth } from "~/utils/auth-gurads";
 import type { Route } from "../../routes/settings/+types/disable-two-factor";
 
 export async function action({ context }: Route.ActionArgs) {
-    const auth = getRequiredAuth(context);
+    const contextValue = requireAuth(context);
 
-    await deleteTwoFactorForUser(auth.userId);
+    await deleteTwoFactorForUser(contextValue.userId);
 
     return { ok: true } as const;
 }

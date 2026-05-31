@@ -3,8 +3,8 @@ import { flattenError, NEVER } from "zod";
 import { findValidOtpByUserId, revokeOtp } from "~/models/otp";
 import { findUserByEmail } from "~/models/user";
 import { VerifyCodeSchema } from "~/pages/forgot-password/components/VerifyCodeForm";
-import { signAuthToken } from "~/utils/auth-tokens";
-import { authCookie } from "~/utils/cookies";
+import { signResetPasswordToken } from "~/utils/auth-tokens";
+import { setAuthCookie } from "~/utils/http";
 import { hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/verify-reset-code";
 
@@ -37,16 +37,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     await revokeOtp(otpMatch.id);
 
-    const jwt = await signAuthToken(
-        {
-            type: "reset-password",
-            userId: user.id,
-            emailVerified: Boolean(user.emailVerifiedAt),
-        },
-        "15m",
-    );
-
-    const headers = new Headers();
-    headers.append("Set-Cookie", await authCookie.serialize(jwt));
+    const jwt = await signResetPasswordToken(user);
+    const headers = await setAuthCookie(jwt);
     return redirect("/reset-password", { headers });
 }

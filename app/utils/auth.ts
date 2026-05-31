@@ -1,69 +1,44 @@
 import { compare, hash } from "bcrypt";
-import type { ActionFunctionArgs, CookieSerializeOptions } from "react-router";
 import type z from "zod";
 import { type User } from "~/db/schema";
-import { createRefreshToken } from "~/models/refreshToken";
+import {
+    createRefreshToken,
+    findValidRefreshToken,
+    updateRefreshToken,
+} from "~/models/refreshToken";
+import { getUserTwoFactor } from "~/models/twoFactor";
 import { createUser, findUser, findUserByEmail } from "~/models/user";
 import { RegisterSchema } from "~/pages/register/components/RegisterForm";
-import { generateRefreshToken, signAuthToken } from "./auth-tokens";
-import { authContext, type AuthContext } from "./contexts";
-import { authCookie, refreshCookie } from "./cookies";
+import {
+    calculateRefreshTokenExpiry,
+    generateRefreshToken,
+    signAccessToken,
+    signTwoFactorChallengeToken,
+} from "./auth-tokens";
 
-export async function checkAuthCredentials({
-    email,
-    password,
-}: {
-    email: string;
-    password: string;
-}) {
-    const user = await findUserByEmail(email);
+type LoginCredentials = { email: string; password: string };
 
-    return user && (await compare(password, user.password)) ? user : null;
-}
-
-export function isAuthenticated(authContext: AuthContext | null) {
-    return authContext && authContext.type === "auth";
-}
-
-export async function login(
-    user: User,
-    remember: boolean = true,
-    headers: Headers = new Headers(),
+export async function authenticate(
+    { email, password }: LoginCredentials,
+    rememberMe = false,
 ) {
-    const jwt = await signAuthToken(
-        {
-            type: "auth",
-            userId: user.id,
-            emailVerified: Boolean(user.emailVerifiedAt),
-        },
-        "15m",
-    );
+    const user = await findUserByEmail(email);
+    const isPasswordValid = user && (await compare(password, user.password));
+    if (!isPasswordValid) return null;
 
-    const refreshToken = generateRefreshToken();
+    const twoFactor = await getUserTwoFactor(user.id);
+    if (twoFactor && twoFactor.confirmedAt) {
+        const twoFactorToken = await signTwoFactorChallengeToken(
+            user,
+            rememberMe,
+        );
+        return { enabledTfa: true, user, twoFactorToken } as const;
+    }
 
-    const nextHour = new Date(Date.now() + 60 * 60 * 1000);
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const accessToken = await signAccessToken(user);
+    const refreshToken = await createRefreshSession(user, rememberMe);
 
-    await createRefreshToken({
-        refreshToken: refreshToken,
-        expiresAt: remember ? nextWeek : nextHour,
-        userId: user.id,
-        rememberMe: remember,
-    });
-
-    const cookieExpire: CookieSerializeOptions | undefined = remember
-        ? undefined
-        : { maxAge: undefined };
-
-    await Promise.all([
-        authCookie.serialize(jwt, cookieExpire),
-        refreshCookie.serialize(refreshToken, cookieExpire),
-    ]).then((c) => {
-        headers.append("Set-Cookie", c[0]);
-        headers.append("Set-Cookie", c[1]);
-    });
-
-    return headers;
+    return { enabledTfa: false, user, accessToken, refreshToken } as const;
 }
 
 export async function register(data: z.infer<typeof RegisterSchema>) {
@@ -76,30 +51,47 @@ export async function register(data: z.infer<typeof RegisterSchema>) {
     });
 }
 
-export function getRequiredAuth(
-    context: ActionFunctionArgs["context"],
-): AuthContext {
-    const value = context.get(authContext);
+export async function createRefreshSession(user: User, rememberMe = false) {
+    const token = generateRefreshToken();
 
-    if (!value) {
-        throw new Error(
-            "Missing auth context. Make sure requireAuth middleware is used",
-        );
-    }
+    await createRefreshToken({
+        refreshToken: token,
+        expiresAt: calculateRefreshTokenExpiry(rememberMe),
+        userId: user.id,
+        rememberMe: rememberMe,
+    });
 
-    return value;
+    return token;
 }
 
-export async function getRequiredUser(
-    context: ActionFunctionArgs["context"],
-): Promise<User> {
-    const auth = getRequiredAuth(context);
+export async function issueSessionTokens(user: User, rememberMe = false) {
+    const [accessToken, refreshToken] = await Promise.all([
+        signAccessToken(user),
+        createRefreshSession(user, rememberMe),
+    ]);
 
-    const user = await findUser(auth.userId);
+    return { accessToken, refreshToken };
+}
 
-    if (!user) {
-        throw new Error("Auth user is not found");
-    }
+export async function refreshSession(oldRefreshToken: string) {
+    // TODO: refactor to inner join
+    const tokenMatch = await findValidRefreshToken(oldRefreshToken);
+    const user = tokenMatch && (await findUser(tokenMatch.userId));
+    if (!tokenMatch || !user) return null;
 
-    return user;
+    await updateRefreshToken(tokenMatch.id, { usedAt: new Date() });
+
+    const { accessToken, refreshToken } = await issueSessionTokens(
+        user,
+        tokenMatch.rememberMe,
+    );
+
+    return {
+        accessToken,
+        refreshToken,
+        user,
+        loginContext: {
+            rememberMe: tokenMatch.rememberMe,
+        },
+    };
 }

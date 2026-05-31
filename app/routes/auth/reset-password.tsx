@@ -1,23 +1,17 @@
 import { hash } from "bcrypt";
 import { redirect } from "react-router";
 import { flattenError } from "zod";
+import { canResetPassword } from "~/middlewares/canResetPassword";
 import { updateUserPassword } from "~/models/user";
+import ResetPasswordCard from "~/pages/reset-password/components/ResetPasswordCard";
 import ResetPasswordForm, {
     ResetPasswordSchema,
 } from "~/pages/reset-password/components/ResetPasswordForm";
-import { destroyAuthCookies } from "~/utils/auth-tokens";
-import { authContext } from "~/utils/contexts";
+import { requireResetPassword } from "~/utils/auth-gurads";
+import { destroyAuthCookies } from "~/utils/http";
 import type { Route } from "./+types/reset-password";
-import ResetPasswordCard from "~/pages/reset-password/components/ResetPasswordCard";
 
-export const middleware: Route.MiddlewareFunction[] = [
-    function ({ context }) {
-        const value = context.get(authContext);
-        if (value && value.type === "reset-password") return;
-
-        throw redirect("/login");
-    },
-];
+export const middleware: Route.MiddlewareFunction[] = [canResetPassword];
 
 export async function action({ request, context }: Route.ActionArgs) {
     const parseResult = ResetPasswordSchema.safeParse(
@@ -28,10 +22,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
     }
 
-    const auth = context.get(authContext)!;
+    const contextValue = requireResetPassword(context);
 
     await updateUserPassword(
-        auth.userId,
+        contextValue.userId,
         await hash(parseResult.data.password, 10),
     );
 

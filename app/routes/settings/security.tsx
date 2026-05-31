@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { MiddlewareFunction } from "react-router";
+import { requireAuth } from "~/middlewares/requireAuth";
 import { getUserTwoFactor } from "~/models/twoFactor";
 import { AuthenticatorQrCode } from "~/pages/settings/AuthenticatorQrCode";
 import ConfirmTwoFactorModal from "~/pages/settings/ConfirmTwoFactorModal";
@@ -7,13 +9,16 @@ import ManualKeySetup from "~/pages/settings/ManualKeySetup";
 import RecoveryCodes from "~/pages/settings/RecoveryCodes";
 import TwoFactorSetting from "~/pages/settings/TwoFactorSetting";
 import UpdatePasswordForm from "~/pages/settings/UpdatePasswordForm";
-import { getRequiredAuth } from "~/utils/auth";
+import { requireAuth as requireAuthContext } from "~/utils/auth-gurads";
 import type { Route } from "./+types/security";
 import TwoFactorSetupCard from "./TwoFactorSetupCard";
 
+export const middleware: MiddlewareFunction<Response>[] = [requireAuth];
+
 export async function loader({ context }: Route.LoaderArgs) {
-    const auth = getRequiredAuth(context);
-    const twoFactor = await getUserTwoFactor(auth.userId);
+    const contextValue = requireAuthContext(context);
+
+    const twoFactor = await getUserTwoFactor(contextValue.userId);
 
     return { isTwoFactorActive: Boolean(twoFactor && twoFactor.confirmedAt) };
 }

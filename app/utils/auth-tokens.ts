@@ -1,66 +1,102 @@
-import type { JWTPayload } from "jose";
-import { jwtVerify, SignJWT } from "jose";
 import { randomBytes } from "node:crypto";
 import z from "zod";
-import { authCookie, refreshCookie } from "./cookies";
+import type { User } from "~/db/schema";
+import { signJwtToken, verifyJwtToken } from "./jwt";
 
-export const AuthTokenPayloadSchema = z.object({
-    type: z.union([z.literal("auth"), z.literal("reset-password")]),
+export const AccessTokenPayload = z.object({
+    iat: z.number().optional(),
+    exp: z.number().optional(),
+    type: z.literal("auth"),
     userId: z.number(),
+    email: z.string(),
     emailVerified: z.boolean(),
 });
 
-export function jwtKey() {
-    return new TextEncoder().encode(process.env.JWT_KEY!);
+export const ResetPasswordTokenPayload = z.object({
+    iat: z.number().optional(),
+    exp: z.number().optional(),
+    type: z.literal("reset-password"),
+    userId: z.number(),
+});
+
+export const TwoFactorChallengeTokenPayload = z.object({
+    iat: z.number().optional(),
+    exp: z.number().optional(),
+    type: z.literal("two-factor"),
+    userId: z.number(),
+    rememberMe: z.boolean(),
+});
+
+export function signAccessToken(user: User) {
+    return signJwtToken(
+        {
+            type: "auth",
+            userId: user.id,
+            email: user.email,
+            emailVerified: Boolean(user.emailVerifiedAt),
+        },
+        "15m",
+    );
 }
 
-export function signAuthToken(
-    payload: JWTPayload & z.infer<typeof AuthTokenPayloadSchema>,
-    expiry: string | Date | number,
-) {
-    return new SignJWT(payload)
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime(expiry)
-        .sign(jwtKey());
+export function signResetPasswordToken(user: User) {
+    return signJwtToken(
+        {
+            type: "reset-password",
+            userId: user.id,
+        },
+        "10m",
+    );
 }
 
-export async function verifyAuthToken(token: string) {
-    const verifyResult = await jwtVerify(token, jwtKey());
-    const parseResult = AuthTokenPayloadSchema.safeParse(verifyResult.payload);
+export function signTwoFactorChallengeToken(user: User, rememberMe = false) {
+    return signJwtToken(
+        {
+            type: "two-factor",
+            userId: user.id,
+            rememberMe,
+        },
+        "5m",
+    );
+}
 
-    if (parseResult.success)
-        return { ...verifyResult.payload, ...parseResult.data };
+export async function verifyAccessToken(token: string) {
+    try {
+        const payload = await verifyJwtToken(token);
 
-    return null;
+        return AccessTokenPayload.parse(payload);
+    } catch {
+        return null;
+    }
+}
+
+export async function verifyResetPasswordToken(token: string) {
+    try {
+        const payload = await verifyJwtToken(token);
+
+        return ResetPasswordTokenPayload.parse(payload);
+    } catch {
+        return null;
+    }
+}
+
+export async function verifyTwoFactorChallengeToken(token: string) {
+    try {
+        const payload = await verifyJwtToken(token);
+
+        return TwoFactorChallengeTokenPayload.parse(payload);
+    } catch {
+        return null;
+    }
 }
 
 export function generateRefreshToken() {
     return randomBytes(64).toString("hex");
 }
 
-export async function getCurrentAuthTokens(request: Request) {
-    const cookie = request.headers.get("Cookie");
+export function calculateRefreshTokenExpiry(rememberMe: boolean) {
+    const nextHour = new Date(Date.now() + 60 * 60 * 1000);
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const [authToken, refreshToken] = await Promise.all([
-        authCookie.parse(cookie),
-        refreshCookie.parse(cookie),
-    ]);
-
-    return {
-        authToken: typeof authToken === "string" ? authToken : null,
-        refreshToken: typeof refreshToken === "string" ? refreshToken : null,
-    };
-}
-
-export async function destroyAuthCookies(headers = new Headers()) {
-    headers.append(
-        "Set-Cookie",
-        await authCookie.serialize("", { maxAge: -1 }),
-    );
-
-    headers.append(
-        "Set-Cookie",
-        await refreshCookie.serialize("", { maxAge: -1 }),
-    );
+    return rememberMe ? nextWeek : nextHour;
 }

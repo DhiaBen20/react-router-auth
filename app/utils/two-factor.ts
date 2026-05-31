@@ -8,8 +8,12 @@ export async function generateRecoveryCodes() {
     );
 }
 
+export function hashRecoveryCode(code: string) {
+    return hash("sha256", code, "hex");
+}
+
 export function hashRecoveryCodes(codes: string[]) {
-    return codes.map((code) => hash("sha256", code, "hex"));
+    return codes.map(hashRecoveryCode);
 }
 
 export function verifyTotp(secretKey: TwoFactor["secretKey"], code: string) {

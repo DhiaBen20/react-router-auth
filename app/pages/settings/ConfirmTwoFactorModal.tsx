@@ -34,6 +34,7 @@ export default function ConfirmTwoFactorModal({
     const {
         control,
         handleSubmit,
+        setError,
         formState: { errors },
     } = useForm({ resolver: zodResolver(ConfirmTwoFactorSchema) });
 
@@ -43,7 +44,18 @@ export default function ConfirmTwoFactorModal({
         if (fetcher.data && fetcher.data.ok) {
             onSubmitSuccess(fetcher.data.recoveryCodes);
         }
-    }, [fetcher, onSubmitSuccess]);
+    }, [fetcher.data, onSubmitSuccess]);
+
+    useEffect(() => {
+        if (!fetcher.data || fetcher.data.ok || !fetcher.data.errors) return;
+
+        if (fetcher.data.errors.fieldErrors.code) {
+            setError("code", {
+                type: "custom",
+                message: fetcher.data.errors.fieldErrors.code[0],
+            });
+        }
+    }, [fetcher.data]);
 
     return (
         <Dialog>
@@ -112,7 +124,12 @@ export default function ConfirmTwoFactorModal({
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button className="flex-1">Confirm</Button>
+                        <Button
+                            className="flex-1"
+                            isLoading={fetcher.state === "submitting"}
+                        >
+                            Confirm
+                        </Button>
                     </div>
                 </fetcher.Form>
             </DialogContent>

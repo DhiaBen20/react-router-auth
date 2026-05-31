@@ -11,7 +11,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from "~/components/ui/input-otp";
-import type { Route as ConfirmCodeRoute } from "../../../routes/auth/+types/confirm-verification-code";
+import type { Route } from "../../../routes/auth/+types/verify-totp";
 
 export const VerifyCodeSchema = z.object({
     code: z.string().min(1, "Verification code is required"),
@@ -20,7 +20,6 @@ export const VerifyCodeSchema = z.object({
 export default function VerifyCodeForm() {
     const {
         control,
-        register,
         handleSubmit,
         setError,
         formState: { errors },
@@ -28,24 +27,24 @@ export default function VerifyCodeForm() {
         resolver: zodResolver(VerifyCodeSchema),
     });
 
-    const fetcher = useFetcher<ConfirmCodeRoute.ComponentProps["actionData"]>();
+    const fetcher = useFetcher<Route.ComponentProps["actionData"]>();
 
     useEffect(() => {
-        if (!fetcher.data) return;
+        if (!fetcher.data || fetcher.data.ok || !fetcher.data.errors) return;
 
-        if (!fetcher.data.ok && fetcher.data.errors.fieldErrors.code) {
+        if (fetcher.data.errors.fieldErrors.code) {
             setError("code", {
                 type: "custom",
                 message: fetcher.data.errors.fieldErrors.code[0],
             });
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     const [searchParams] = useSearchParams();
 
     const submitOptions = {
         method: "post",
-        action: "verify-code",
+        action: "verify-totp",
     } as const;
 
     return (
@@ -82,6 +81,7 @@ export default function VerifyCodeForm() {
                                 ))}
                             </InputOTPGroup>
                         </InputOTP>
+
                         {errors.code && (
                             <FieldError
                                 className="text-center"
@@ -92,12 +92,7 @@ export default function VerifyCodeForm() {
                 )}
             />
 
-            <Button
-                className="w-full"
-                isLoading={fetcher.state === "submitting"}
-            >
-                Verify Code
-            </Button>
+            <Button className="w-full">Continue</Button>
         </fetcher.Form>
     );
 }

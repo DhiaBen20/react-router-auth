@@ -3,8 +3,13 @@ import { flattenError, NEVER } from "zod";
 import { requireGuest } from "~/middlewares/requireGuest";
 import LoginCard from "~/pages/login/components/LoginCard";
 import LoginForm, { LoginSchema } from "~/pages/login/components/LoginForm";
-import { checkAuthCredentials, login } from "~/utils/auth";
-import { getFormDataToObject, getReturnTo, isSafePath } from "~/utils/http";
+import { authenticate } from "~/utils/auth";
+import {
+    getFormDataToObject,
+    getSafeReturnTo,
+    setAuthCookie,
+    setSessionCookies,
+} from "~/utils/http";
 import type { Route } from "./+types/login";
 
 export const middleware: Route.MiddlewareFunction[] = [requireGuest];
@@ -17,9 +22,9 @@ export async function action({ request }: Route.ActionArgs) {
     const formData = await getFormDataToObject(request);
 
     const parseResult = await LoginSchema.transform(async (data, ctx) => {
-        const user = await checkAuthCredentials(data);
+        const authenticateResult = await authenticate(data);
 
-        if (!user) {
+        if (!authenticateResult) {
             ctx.addIssue({
                 code: "custom",
                 path: ["email"],
@@ -29,19 +34,40 @@ export async function action({ request }: Route.ActionArgs) {
             return NEVER;
         }
 
-        return { ...data, user };
+        return { ...data, ...authenticateResult };
     }).safeParseAsync(formData);
 
     if (!parseResult.success) {
         return { ok: false as const, errors: flattenError(parseResult.error) };
     }
 
-    const { user, rememberMe } = parseResult.data;
+    const {
+        rememberMe,
+        enabledTfa,
+        twoFactorToken,
+        accessToken,
+        refreshToken,
+    } = parseResult.data;
 
-    const headers = await login(user, rememberMe);
-    const returnTo = getReturnTo(formData) ?? "";
+    const returnTo = getSafeReturnTo(formData);
 
-    throw redirect(isSafePath(returnTo) ? returnTo : "/", { headers });
+    if (enabledTfa) {
+        const headers = await setAuthCookie(twoFactorToken);
+
+        throw redirect(
+            "/two-factor-challenge" + (returnTo ? `?returnTo=${returnTo}` : ""),
+            {
+                headers,
+            },
+        );
+    }
+
+    const headers = await setSessionCookies(
+        { accessToken, refreshToken },
+        rememberMe,
+    );
+
+    throw redirect(returnTo ?? "/", { headers });
 }
 
 export default function Login() {

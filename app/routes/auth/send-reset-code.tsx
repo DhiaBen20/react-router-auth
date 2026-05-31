@@ -2,7 +2,7 @@ import { flattenError } from "zod";
 import { createOtp } from "~/models/otp";
 import { findUserByEmail } from "~/models/user";
 import { RequestCodeSchema } from "~/pages/forgot-password/components/RequestCodeForm";
-import { generateOtp, calculateOtpExpiryDate, hashOtp } from "~/utils/otp";
+import { calculateOtpExpiryDate, generateOtp, hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/send-reset-code";
 
 export async function action({ request }: Route.ActionArgs) {

@@ -24,7 +24,6 @@ export const LoginSchema = z.object({
         .min(1, "Password is required")
         .min(8, "Password must be at least 8 characters long"),
     rememberMe: z.transform((v) => (typeof v === "boolean" ? v : v === "true")),
-    returnTo: z.string(),
 });
 
 export default function LoginForm() {
@@ -65,19 +64,17 @@ export default function LoginForm() {
         <Form
             method="post"
             className="space-y-4"
-            onSubmit={handleSubmit((data) => submit(data, { method: "post" }))}
+            onSubmit={handleSubmit((data) =>
+                submit(
+                    { ...data, returnTo: searchParams.get("returnTo") ?? "" },
+                    { method: "post" },
+                ),
+            )}
         >
             <input
                 type="hidden"
                 name="returnTo"
                 value={searchParams.get("returnTo") ?? ""}
-            />
-
-            <input
-                type="hidden"
-                {...register("returnTo", {
-                    value: searchParams.get("returnTo") ?? "",
-                })}
             />
 
             <Field data-invalid={errors.email ? true : false}>
@@ -95,7 +92,7 @@ export default function LoginForm() {
             <Field data-invalid={errors.password ? true : undefined}>
                 <div className="flex items-center justify-between">
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Link to="#" className="hover:underline">
+                    <Link to="/forgot-password" className="hover:underline">
                         Forgot Password?
                     </Link>
                 </div>

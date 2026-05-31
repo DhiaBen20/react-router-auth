@@ -1,11 +1,12 @@
 import { getUserTwoFactor, updateTwoFactor } from "~/models/twoFactor";
-import { getRequiredAuth } from "~/utils/auth";
+import { requireAuth } from "~/utils/auth-gurads";
 import { generateRecoveryCodes, hashRecoveryCodes } from "~/utils/two-factor";
 import type { Route } from "./+types/generate-recovery-codes";
 
 export async function action({ context }: Route.ActionArgs) {
-    const auth = getRequiredAuth(context);
-    const tfaConfig = await getUserTwoFactor(auth.userId);
+    const contextValue = requireAuth(context);
+
+    const tfaConfig = await getUserTwoFactor(contextValue.userId);
 
     if (!tfaConfig || !tfaConfig.confirmedAt) return { ok: false } as const;
 

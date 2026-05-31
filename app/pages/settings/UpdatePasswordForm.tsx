@@ -46,20 +46,23 @@ export default function UpdatePasswordForm() {
 
         if (errors && errors.fieldErrors.currentPassword) {
             setError("currentPassword", {
+                type: "custom",
                 message: errors.fieldErrors.currentPassword[0],
             });
         }
         if (errors && errors.fieldErrors.newPassword) {
             setError("newPassword", {
+                type: "custom",
                 message: errors.fieldErrors.newPassword[0],
             });
         }
         if (errors && errors.fieldErrors.confirmPassword) {
             setError("confirmPassword", {
+                type: "custom",
                 message: errors.fieldErrors.confirmPassword[0],
             });
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     return (
         <fetcher.Form
@@ -112,7 +115,9 @@ export default function UpdatePasswordForm() {
                     <FieldError errors={[errors.confirmPassword]} />
                 )}
             </Field>
-            <Button>Save Password</Button>
+            <Button isLoading={fetcher.state === "submitting"}>
+                Save Password
+            </Button>
         </fetcher.Form>
     );
 }

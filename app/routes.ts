@@ -9,6 +9,13 @@ export default [
     index("routes/home.tsx"),
     layout("./components/layouts/auth-layout.tsx", [
         route("/login", "routes/auth/login.tsx"),
+        route("/two-factor-challenge", "routes/auth/two-factor-challenge.tsx", [
+            route("verify-totp", "routes/auth/verify-totp.tsx"),
+            route(
+                "verify-recovery-code",
+                "routes/auth/verify-recovery-code.tsx",
+            ),
+        ]),
         route("/register", "routes/auth/register.tsx"),
         route("/forgot-password", "routes/auth/forgot-password.tsx", [
             route("send-code", "routes/auth/send-reset-code.tsx"),

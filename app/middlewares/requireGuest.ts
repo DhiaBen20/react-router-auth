@@ -1,11 +1,15 @@
 import { redirect, type MiddlewareFunction } from "react-router";
-import { isAuthenticated } from "~/utils/auth";
-import { authContext } from "~/utils/contexts";
+import z from "zod";
+import { verifyAccessToken } from "~/utils/auth-tokens";
+import { authCookie } from "~/utils/cookies";
+import { getCookie } from "~/utils/http";
 
 export const requireGuest: MiddlewareFunction<Response> = async ({
-    context,
+    request,
 }) => {
-    const value = context.get(authContext);
+    const accessToken = await getCookie(request, authCookie, z.string());
 
-    if (isAuthenticated(value)) throw redirect("/");
+    if (!accessToken) return;
+
+    if (await verifyAccessToken(accessToken)) throw redirect("/");
 };

@@ -6,14 +6,14 @@ import RequestCodeForm from "~/pages/verify-email/components/RequestCodeForm";
 import ResendCodeForm from "~/pages/verify-email/components/ResendCodeForm";
 import VerifyCodeForm from "~/pages/verify-email/components/VerifyCodeForm";
 import VerifyEmailCard from "~/pages/verify-email/components/VerifyEmailCard";
-import { authContext } from "~/utils/contexts";
+import { requireAuth as requireAuthContext } from "~/utils/auth-gurads";
 
 export const middleware: MiddlewareFunction<Response>[] = [
     requireAuth,
     ({ context }) => {
-        const value = context.get(authContext)!;
+        const contextValue = requireAuthContext(context);
 
-        if (value.emailVerified) throw redirect("/");
+        if (contextValue.emailVerified) throw redirect("/");
     },
 ];
 

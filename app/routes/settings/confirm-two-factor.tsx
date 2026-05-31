@@ -1,7 +1,7 @@
 import { flattenError } from "zod";
 import { getUserTwoFactor, updateTwoFactor } from "~/models/twoFactor";
 import { ConfirmTwoFactorSchema } from "~/pages/settings/ConfirmTwoFactorModal";
-import { getRequiredAuth } from "~/utils/auth";
+import { requireAuth } from "~/utils/auth-gurads";
 import { getFormDataToObject } from "~/utils/http";
 import {
     generateRecoveryCodes,
@@ -11,9 +11,9 @@ import {
 import type { Route } from "../../routes/settings/+types/confirm-two-factor";
 
 export async function action({ request, context }: Route.ActionArgs) {
-    const auth = getRequiredAuth(context);
+    const contextValue = requireAuth(context);
 
-    const tfaConfig = await getUserTwoFactor(auth.userId);
+    const tfaConfig = await getUserTwoFactor(contextValue.userId);
 
     // abort if disabled or confirmed
     if (!tfaConfig || tfaConfig.confirmedAt) {

@@ -9,9 +9,6 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { verifyAuthTokens } from "./middlewares/verifyAuthTokens";
-
-export const middleware: Route.MiddlewareFunction[] = [verifyAuthTokens];
 
 export const links: Route.LinksFunction = () => [
     { rel: "preconnect", href: "https://fonts.googleapis.com" },

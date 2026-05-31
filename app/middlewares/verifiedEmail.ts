@@ -1,19 +1,13 @@
 import { redirect, type MiddlewareFunction } from "react-router";
-import { authContext } from "~/utils/contexts";
+import { requireAuth } from "~/utils/auth-gurads";
 
 export const verifiedEmail: MiddlewareFunction<Response> = async ({
     request,
     context,
 }) => {
-    const value = context.get(authContext);
+    const { emailVerified } = requireAuth(context);
 
-    if (!value) {
-        throw new Error(
-            "authContext is null, add the requireAuth middleware to the route middleware export before this one",
-        );
-    }
-
-    if (!value!.emailVerified) {
+    if (!emailVerified) {
         const url = new URL(request.url);
 
         throw redirect(`/verify-email?returnTo=${url.pathname}`);

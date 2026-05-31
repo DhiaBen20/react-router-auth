@@ -4,25 +4,25 @@ import {
     getUserTwoFactor,
     updateTwoFactor,
 } from "~/models/twoFactor";
-import { getRequiredAuth } from "~/utils/auth";
+import { requireAuth } from "~/utils/auth-gurads";
 import type { Route } from "./+types/enable-two-factor";
 
 export async function action({ context }: Route.ActionArgs) {
-    const auth = getRequiredAuth(context);
+    const contextValue = requireAuth(context);
 
-    const tfaConfig = await getUserTwoFactor(auth.userId);
+    const twoFactor = await getUserTwoFactor(contextValue.userId);
 
-    if (tfaConfig && tfaConfig.confirmedAt) return { ok: true } as const;
+    if (twoFactor && twoFactor.confirmedAt) return { ok: true } as const;
 
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
         secret,
         issuer: "React router auth",
-        label: auth.userId.toString(),
+        label: contextValue.userId.toString(),
     });
 
-    if (tfaConfig) {
-        await updateTwoFactor(tfaConfig.id, {
+    if (twoFactor) {
+        await updateTwoFactor(twoFactor.id, {
             secretKey: secret.base32,
             confirmedAt: null,
             recoveryCodes: null,
@@ -30,7 +30,7 @@ export async function action({ context }: Route.ActionArgs) {
     } else {
         await createTwoFactor({
             secretKey: secret.base32,
-            userId: auth.userId,
+            userId: contextValue.userId,
         });
     }
 

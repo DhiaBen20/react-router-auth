@@ -4,7 +4,6 @@ export const authCookie = createCookie("auth-token", {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 minutes
 });
 
 export const refreshCookie = createCookie("refresh-token", {

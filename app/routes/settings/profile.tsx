@@ -1,30 +1,20 @@
 import { data } from "react-router";
 import { flattenError } from "zod";
 import { requireAuth } from "~/middlewares/requireAuth";
-import { findUser, updateUser } from "~/models/user";
+import { findUserByEmail, updateUser } from "~/models/user";
+import Heading from "~/pages/settings/Heading";
 import ProfileInfoForm, {
     ProfileInfoSchema,
 } from "~/pages/settings/ProfileInfoForm";
-import { getRequiredUser } from "~/utils/auth";
-import { signAuthToken } from "~/utils/auth-tokens";
-import { authContext } from "~/utils/contexts";
-import { authCookie } from "~/utils/cookies";
-import { getFormDataToObject } from "~/utils/http";
+import { requireAuthUser } from "~/utils/auth-gurads";
+import { signAccessToken } from "~/utils/auth-tokens";
+import { getFormDataToObject, setAuthCookie } from "~/utils/http";
 import type { Route } from "./+types/profile";
-import Heading from "~/pages/settings/Heading";
 
 export const middleware = [requireAuth];
 
 export async function loader({ context }: Route.LoaderArgs) {
-    const auth = context.get(authContext)!;
-
-    const user = await findUser(auth.userId);
-
-    if (!user) {
-        throw new Error(
-            "could'nt find the auth user, make sure to use requireAuth middleware",
-        );
-    }
+    const user = await requireAuthUser(context);
 
     return {
         ok: true,
@@ -36,10 +26,22 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-    const user = await getRequiredUser(context);
+    const user = await requireAuthUser(context);
 
     const form = await getFormDataToObject(request);
-    const parseResult = ProfileInfoSchema.safeParse(form);
+    const parseResult = await ProfileInfoSchema.superRefine(
+        async (data, ctx) => {
+            const user = await findUserByEmail(data.email);
+
+            if (user) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["email"],
+                    message: "Email is already in use",
+                });
+            }
+        },
+    ).safeParseAsync(form);
 
     if (!parseResult.success) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
@@ -47,7 +49,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const { email, name } = parseResult.data;
     const updatedEmail = user.email !== email;
-    await updateUser(user.id, {
+    const updatedUser = await updateUser(user.id, {
         email: email,
         name: name,
         emailVerifiedAt: updatedEmail ? null : undefined,
@@ -55,12 +57,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const headers = new Headers();
     if (updatedEmail) {
-        const jwt = await signAuthToken(
-            { type: "auth", userId: user.id, emailVerified: false },
-            "15m",
-        );
+        const jwt = await signAccessToken(updatedUser);
 
-        headers.append("Set-Cookie", await authCookie.serialize(jwt));
+        await setAuthCookie(jwt, headers);
     }
 
     return data({ ok: true } as const, { headers });

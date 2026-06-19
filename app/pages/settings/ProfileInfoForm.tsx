@@ -41,8 +41,6 @@ export default function ProfileInfoForm() {
 
     const navigation = useNavigation();
 
-    console.log(errors);
-
     useEffect(() => {
         if (!actionData || actionData.ok) return;
 

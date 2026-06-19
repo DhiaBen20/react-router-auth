@@ -40,7 +40,7 @@ export default function VerifyCodeForm({ email }: { email: string }) {
                 message: fetcher.data.errors.fieldErrors.code[0],
             });
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     const submitOptions = {
         method: "post",

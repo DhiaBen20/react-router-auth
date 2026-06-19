@@ -3,7 +3,8 @@ import {
     type RouterContext,
     type RouterContextProvider,
 } from "react-router";
-import { findUser } from "~/models/user";
+import { db } from "~/db/client";
+import { UserRepository } from "~/repositories/user";
 import {
     authContext,
     resetPasswordContext,
@@ -23,10 +24,9 @@ function requireContext<T>(
 }
 
 async function requireUser(userId: number) {
-    const user = await findUser(userId);
-
+    const userRepository = new UserRepository(db);
+    const user = await userRepository.find(userId);
     if (!user) throw redirect("/login");
-
     return user;
 }
 

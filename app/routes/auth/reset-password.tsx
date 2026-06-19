@@ -1,12 +1,13 @@
 import { hash } from "bcrypt";
 import { redirect } from "react-router";
 import { flattenError } from "zod";
+import { db } from "~/db/client";
 import { canResetPassword } from "~/middlewares/canResetPassword";
-import { updateUserPassword } from "~/models/user";
 import ResetPasswordCard from "~/pages/reset-password/components/ResetPasswordCard";
 import ResetPasswordForm, {
     ResetPasswordSchema,
 } from "~/pages/reset-password/components/ResetPasswordForm";
+import { UserRepository } from "~/repositories/user";
 import { requireResetPassword } from "~/utils/auth-gurads";
 import { destroyAuthCookies } from "~/utils/http";
 import type { Route } from "./+types/reset-password";
@@ -23,11 +24,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     const contextValue = requireResetPassword(context);
-
-    await updateUserPassword(
-        contextValue.userId,
-        await hash(parseResult.data.password, 10),
-    );
+    const userRepository = new UserRepository(db);
+    await userRepository.update(contextValue.userId, {
+        password: await hash(parseResult.data.password, 10),
+    });
 
     const response = redirect("/login");
     await destroyAuthCookies(response.headers);

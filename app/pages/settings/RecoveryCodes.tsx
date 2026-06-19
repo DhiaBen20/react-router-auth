@@ -1,4 +1,3 @@
-import { RefreshCcw } from "lucide-react";
 import { useFetcher } from "react-router";
 import { Button } from "~/components/ui/button";
 import type { Route as GenerateRecoveryCodesRoute } from "../../routes/settings/+types/generate-recovery-codes";

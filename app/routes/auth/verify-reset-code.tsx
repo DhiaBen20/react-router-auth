@@ -1,19 +1,23 @@
 import { redirect } from "react-router";
 import { flattenError, NEVER } from "zod";
-import { findValidOtpByUserId, revokeOtp } from "~/models/otp";
-import { findUserByEmail } from "~/models/user";
+import { db } from "~/db/client";
 import { VerifyCodeSchema } from "~/pages/forgot-password/components/VerifyCodeForm";
+import { OtpRepository } from "~/repositories/otp";
+import { UserRepository } from "~/repositories/user";
 import { signResetPasswordToken } from "~/utils/auth-tokens";
 import { setAuthCookie } from "~/utils/http";
 import { hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/verify-reset-code";
 
 export async function action({ request }: Route.ActionArgs) {
+    const userRepository = new UserRepository(db);
+    const otpRepository = new OtpRepository(db);
+
     const parseResult = await VerifyCodeSchema.transform(async (data, ctx) => {
-        const user = await findUserByEmail(data.email);
+        const user = await userRepository.findByEmail(data.email);
 
         const otpMatch = user
-            ? await findValidOtpByUserId(user.id, hashOtp(data.code))
+            ? await otpRepository.findValidOtp(user.id, hashOtp(data.code))
             : null;
 
         if (!otpMatch || !user) {
@@ -35,7 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     const { user, otpMatch } = parseResult.data;
 
-    await revokeOtp(otpMatch.id);
+    await otpRepository.update(otpMatch.id, { expiresAt: new Date() });
 
     const jwt = await signResetPasswordToken(user);
     const headers = await setAuthCookie(jwt);

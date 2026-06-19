@@ -1,22 +1,21 @@
 import { compare, hash } from "bcrypt";
 import type { ActionFunctionArgs } from "react-router";
 import { flattenError } from "zod";
-import { updateUserPassword } from "~/models/user";
+import { db } from "~/db/client";
 import { UpdatePasswordSchema } from "~/pages/settings/UpdatePasswordForm";
+import { UserRepository } from "~/repositories/user";
 import { requireAuthUser } from "~/utils/auth-gurads";
 import { getFormDataToObject } from "~/utils/http";
 
 export async function action({ context, request }: ActionFunctionArgs) {
     const user = await requireAuthUser(context);
-
     const formData = await getFormDataToObject(request);
 
     const parseResult = await UpdatePasswordSchema.superRefine(
         async (data, ctx) => {
-            const passwordsMatch = await compare(
-                data.currentPassword,
-                user.password,
-            );
+            const passwordsMatch =
+                !!user.password &&
+                (await compare(data.currentPassword, user.password));
 
             if (!passwordsMatch) {
                 ctx.addIssue({
@@ -32,10 +31,10 @@ export async function action({ context, request }: ActionFunctionArgs) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
     }
 
-    await updateUserPassword(
-        user.id,
-        await hash(parseResult.data.newPassword, 10),
-    );
+    const userRepository = new UserRepository(db);
+    await userRepository.update(user.id, {
+        password: await hash(parseResult.data.newPassword, 10),
+    });
 
     return { ok: true } as const;
 }

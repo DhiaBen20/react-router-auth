@@ -1,7 +1,8 @@
 import { flattenError } from "zod";
-import { createOtp } from "~/models/otp";
-import { findUserByEmail } from "~/models/user";
+import { db } from "~/db/client";
 import { RequestCodeSchema } from "~/pages/forgot-password/components/RequestCodeForm";
+import { OtpRepository } from "~/repositories/otp";
+import { UserRepository } from "~/repositories/user";
 import { calculateOtpExpiryDate, generateOtp, hashOtp } from "~/utils/otp";
 import type { Route } from "./+types/send-reset-code";
 
@@ -14,13 +15,16 @@ export async function action({ request }: Route.ActionArgs) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
     }
 
-    const user = await findUserByEmail(parseResult.data.email);
+    const userRepository = new UserRepository(db);
+    const otpRepository = new OtpRepository(db);
+    const user = await userRepository.findByEmail(parseResult.data.email);
 
     if (!user) return { ok: true } as const;
 
     const randomCode = generateOtp();
 
-    await createOtp({
+    await otpRepository.updateForUser(user.id, { expiresAt: new Date() });
+    await otpRepository.create({
         otpHash: hashOtp(randomCode),
         userId: user.id,
         expiresAt: calculateOtpExpiryDate(),

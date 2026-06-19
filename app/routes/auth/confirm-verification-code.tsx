@@ -1,8 +1,9 @@
 import { redirect } from "react-router";
 import { flattenError, NEVER } from "zod";
-import { findValidOtpByUserId, revokeOtp } from "~/models/otp";
-import { updateUser } from "~/models/user";
+import { db } from "~/db/client";
 import { VerifyCodeSchema } from "~/pages/verify-email/components/VerifyCodeForm";
+import { OtpRepository } from "~/repositories/otp";
+import { UserRepository } from "~/repositories/user";
 import { requireAuth } from "~/utils/auth-gurads";
 import { signAccessToken } from "~/utils/auth-tokens";
 import {
@@ -17,10 +18,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     const contextValue = requireAuth(context);
 
     const form = await getFormDataToObject(request);
-
+    const otpRepository = new OtpRepository(db);
+    const userRespository = new UserRepository(db);
     const parseResult = await VerifyCodeSchema.transform(
         async ({ code }, ctx) => {
-            const otpMatch = await findValidOtpByUserId(
+            const otpMatch = await otpRepository.findValidOtp(
                 contextValue.userId,
                 hashOtp(code),
             );
@@ -43,10 +45,12 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
     }
 
-    const updatedUser = await updateUser(contextValue.userId, {
+    const updatedUser = await userRespository.update(contextValue.userId, {
         emailVerifiedAt: new Date(),
     });
-    await revokeOtp(parseResult.data.otpMatch.id);
+    await otpRepository.update(parseResult.data.otpMatch.id, {
+        usedAt: new Date(),
+    });
 
     const jwt = await signAccessToken(updatedUser);
     const headers = await setAuthCookie(jwt);

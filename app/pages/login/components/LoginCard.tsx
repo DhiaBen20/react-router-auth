@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { Button } from "~/components/ui/button";
 import {
     Card,
     CardContent,
@@ -8,6 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card";
+import { GoogleSignInForm } from "./GoogleSignInForm";
 
 export default function LoginCard({ children }: { children: ReactNode }) {
     return (
@@ -25,7 +25,7 @@ export default function LoginCard({ children }: { children: ReactNode }) {
                 </p>
             </CardContent>
             <CardFooter className="flex-col">
-                <Button variant="ghost">Sign in with google</Button>
+                <GoogleSignInForm />
             </CardFooter>
         </Card>
     );

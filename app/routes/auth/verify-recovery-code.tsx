@@ -1,9 +1,11 @@
 import { redirect } from "react-router";
 import { flattenError, NEVER } from "zod";
-import { getUserTwoFactor, updateTwoFactor } from "~/models/twoFactor";
+import { db } from "~/db/client";
 import { RecoveryCodeSchema } from "~/pages/two-factor-verification/components/RecoveryCodeForm";
+import { TwoFactorRepository } from "~/repositories/two-factor";
+import { UserRepository } from "~/repositories/user";
 import { issueSessionTokens } from "~/utils/auth";
-import { requireTwoFactor, requireTwoFactorUser } from "~/utils/auth-gurads";
+import { requireTwoFactor } from "~/utils/auth-gurads";
 import {
     getFormDataToObject,
     getSafeReturnTo,
@@ -15,12 +17,17 @@ import type { Route } from "./+types/verify-recovery-code";
 export async function action({ request, context }: Route.ActionArgs) {
     const formData = await getFormDataToObject(request);
     const contextValue = requireTwoFactor(context);
-    const user = await requireTwoFactorUser(context);
-    const twoFactor = await getUserTwoFactor(contextValue.userId);
 
-    if (!twoFactor) {
+    const userRepository = new UserRepository(db);
+    const userWithTwoFactor = await userRepository.findUserWithTwoFactor(
+        contextValue.userId,
+    );
+
+    if (!userWithTwoFactor || !userWithTwoFactor.twoFactor) {
         return { ok: false } as const;
     }
+
+    const { user, twoFactor } = userWithTwoFactor;
 
     const recoveryCodes = twoFactor.recoveryCodes;
 
@@ -51,7 +58,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { ok: false, errors: flattenError(parseResult.error) } as const;
     }
 
-    await updateTwoFactor(twoFactor.id, {
+    const twoFactorRepository = new TwoFactorRepository(db);
+    await twoFactorRepository.update(twoFactor.id, {
         recoveryCodes: parseResult.data.remainingCodes,
     });
 

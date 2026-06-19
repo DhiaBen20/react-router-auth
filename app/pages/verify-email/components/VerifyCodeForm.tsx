@@ -39,7 +39,7 @@ export default function VerifyCodeForm() {
                 message: fetcher.data.errors.fieldErrors.code[0],
             });
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     const [searchParams] = useSearchParams();
 

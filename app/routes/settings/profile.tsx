@@ -1,11 +1,12 @@
 import { data } from "react-router";
 import { flattenError } from "zod";
+import { db } from "~/db/client";
 import { requireAuth } from "~/middlewares/requireAuth";
-import { findUserByEmail, updateUser } from "~/models/user";
 import Heading from "~/pages/settings/Heading";
 import ProfileInfoForm, {
     ProfileInfoSchema,
 } from "~/pages/settings/ProfileInfoForm";
+import { UserRepository } from "~/repositories/user";
 import { requireAuthUser } from "~/utils/auth-gurads";
 import { signAccessToken } from "~/utils/auth-tokens";
 import { getFormDataToObject, setAuthCookie } from "~/utils/http";
@@ -27,13 +28,15 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
     const user = await requireAuthUser(context);
-
+    const userRepository = new UserRepository(db);
     const form = await getFormDataToObject(request);
     const parseResult = await ProfileInfoSchema.superRefine(
         async (data, ctx) => {
-            const user = await findUserByEmail(data.email);
+            if (user.email === data.email) return;
 
-            if (user) {
+            const matchedUser = await userRepository.findByEmail(data.email);
+
+            if (matchedUser) {
                 ctx.addIssue({
                     code: "custom",
                     path: ["email"],
@@ -49,7 +52,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const { email, name } = parseResult.data;
     const updatedEmail = user.email !== email;
-    const updatedUser = await updateUser(user.id, {
+    const updatedUser = await userRepository.update(user.id, {
         email: email,
         name: name,
         emailVerifiedAt: updatedEmail ? null : undefined,

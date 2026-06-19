@@ -1,20 +1,19 @@
 import { compare, hash } from "bcrypt";
 import type z from "zod";
 import { type User } from "~/db/schema";
-import {
-    createRefreshToken,
-    findValidRefreshToken,
-    updateRefreshToken,
-} from "~/models/refreshToken";
-import { getUserTwoFactor } from "~/models/twoFactor";
-import { createUser, findUser, findUserByEmail } from "~/models/user";
+
+import { db } from "~/db/client";
 import { RegisterSchema } from "~/pages/register/components/RegisterForm";
+import { OAuthAccountRepository } from "~/repositories/oauth-account";
+import { RefreshTokenRepository } from "~/repositories/refresh-token";
+import { UserRepository } from "~/repositories/user";
 import {
     calculateRefreshTokenExpiry,
     generateRefreshToken,
     signAccessToken,
-    signTwoFactorChallengeToken,
+    signTwoFactorToken,
 } from "./auth-tokens";
+import type { IdTokenPayload } from "./google-oauth";
 
 type LoginCredentials = { email: string; password: string };
 
@@ -22,16 +21,20 @@ export async function authenticate(
     { email, password }: LoginCredentials,
     rememberMe = false,
 ) {
-    const user = await findUserByEmail(email);
-    const isPasswordValid = user && (await compare(password, user.password));
+    const userRepository = new UserRepository(db);
+    const userTwoFactor =
+        await userRepository.findUserWithTwoFactorByEmail(email);
+
+    if (!userTwoFactor) return null;
+
+    const { user, twoFactor } = userTwoFactor;
+
+    const isPasswordValid =
+        user.password && (await compare(password, user.password));
     if (!isPasswordValid) return null;
 
-    const twoFactor = await getUserTwoFactor(user.id);
     if (twoFactor && twoFactor.confirmedAt) {
-        const twoFactorToken = await signTwoFactorChallengeToken(
-            user,
-            rememberMe,
-        );
+        const twoFactorToken = await signTwoFactorToken(user, rememberMe);
         return { enabledTfa: true, user, twoFactorToken } as const;
     }
 
@@ -42,9 +45,10 @@ export async function authenticate(
 }
 
 export async function register(data: z.infer<typeof RegisterSchema>) {
+    const userRespository = new UserRepository(db);
     const passwordHash = await hash(data.password, 10);
 
-    await createUser({
+    userRespository.create({
         email: data.email,
         name: data.name,
         password: passwordHash,
@@ -52,15 +56,14 @@ export async function register(data: z.infer<typeof RegisterSchema>) {
 }
 
 export async function createRefreshSession(user: User, rememberMe = false) {
+    const tokenRepository = new RefreshTokenRepository(db);
     const token = generateRefreshToken();
-
-    await createRefreshToken({
+    await tokenRepository.create({
         refreshToken: token,
         expiresAt: calculateRefreshTokenExpiry(rememberMe),
         userId: user.id,
         rememberMe: rememberMe,
     });
-
     return token;
 }
 
@@ -74,12 +77,22 @@ export async function issueSessionTokens(user: User, rememberMe = false) {
 }
 
 export async function refreshSession(oldRefreshToken: string) {
-    // TODO: refactor to inner join
-    const tokenMatch = await findValidRefreshToken(oldRefreshToken);
-    const user = tokenMatch && (await findUser(tokenMatch.userId));
-    if (!tokenMatch || !user) return null;
+    const tokenRepository = new RefreshTokenRepository(db);
+    const tokenWithUser = await tokenRepository.findWithUser(oldRefreshToken);
 
-    await updateRefreshToken(tokenMatch.id, { usedAt: new Date() });
+    if (
+        !tokenWithUser ||
+        tokenWithUser.refreshToken.usedAt ||
+        tokenWithUser.refreshToken.expiresAt <= new Date()
+    ) {
+        return null;
+    }
+
+    const { user, refreshToken: tokenMatch } = tokenWithUser;
+
+    await tokenRepository.update(tokenWithUser.refreshToken.id, {
+        usedAt: new Date(),
+    });
 
     const { accessToken, refreshToken } = await issueSessionTokens(
         user,
@@ -94,4 +107,35 @@ export async function refreshSession(oldRefreshToken: string) {
             rememberMe: tokenMatch.rememberMe,
         },
     };
+}
+
+export async function findOrCreateGoogleUser(payload: IdTokenPayload) {
+    const userRepository = new UserRepository(db);
+    const oAuthAccountRepository = new OAuthAccountRepository(db);
+
+    const googleAccount = await oAuthAccountRepository.findGoogleAcccount(
+        payload.sub,
+    );
+
+    if (googleAccount) {
+        const user = await userRepository.find(googleAccount.userId);
+        if (!user) throw new Error("Google account exists but no user found");
+        return user;
+    }
+
+    const user =
+        (await userRepository.findByEmail(payload.email)) ??
+        (await userRepository.create({
+            name: payload.name,
+            email: payload.email,
+            emailVerifiedAt: payload.email_verified ? new Date() : null,
+        }));
+
+    await oAuthAccountRepository.create({
+        provider: "google",
+        providerUserId: payload.sub,
+        userId: user.id,
+    });
+
+    return user;
 }

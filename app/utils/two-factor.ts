@@ -2,10 +2,8 @@ import { hash, randomBytes } from "node:crypto";
 import { Secret, TOTP } from "otpauth";
 import type { TwoFactor } from "~/db/schema";
 
-export async function generateRecoveryCodes() {
-    return Promise.all(
-        Array.from({ length: 8 }, () => randomBytes(5).toString("hex")),
-    );
+export function generateRecoveryCodes() {
+    return Array.from({ length: 8 }, () => randomBytes(5).toString("hex"));
 }
 
 export function hashRecoveryCode(code: string) {

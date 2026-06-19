@@ -16,7 +16,7 @@ export default function RequestCodeForm({
         if (fetcher.data && fetcher.data.ok) {
             onSubmitSucces();
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     return (
         <fetcher.Form method="post" action="send-code">

@@ -1,10 +1,12 @@
 import { redirect } from "react-router";
 import { flattenError } from "zod";
+import { db } from "~/db/client";
 import { requireGuest } from "~/middlewares/requireGuest";
-import { findUserByEmail } from "~/models/user";
 import RegisterCard from "~/pages/register/components/RegisterCard";
-import RegisterForm from "~/pages/register/components/RegisterForm";
-import { RegisterSchema } from "~/pages/register/components/RegisterForm";
+import RegisterForm, {
+    RegisterSchema,
+} from "~/pages/register/components/RegisterForm";
+import { UserRepository } from "~/repositories/user";
 import { register } from "~/utils/auth";
 import type { Route } from "./+types/register";
 
@@ -18,8 +20,8 @@ export async function action({ request }: Route.ActionArgs) {
     const formData = await request.formData();
 
     const parseResult = await RegisterSchema.superRefine(async (data, ctx) => {
-        const user = await findUserByEmail(data.email);
-
+        const userRespository = new UserRepository(db);
+        const user = await userRespository.findByEmail(data.email);
         if (user)
             ctx.addIssue({
                 code: "custom",

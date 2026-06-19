@@ -19,7 +19,7 @@ export default function ResendCodeForm({ email }: { email: string }) {
                 return clearInterval(timerRef.current!);
             };
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     useEffect(() => {
         if (time >= COOLDOWN) {

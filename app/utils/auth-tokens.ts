@@ -49,7 +49,7 @@ export function signResetPasswordToken(user: User) {
     );
 }
 
-export function signTwoFactorChallengeToken(user: User, rememberMe = false) {
+export function signTwoFactorToken(user: User, rememberMe = false) {
     return signJwtToken(
         {
             type: "two-factor",

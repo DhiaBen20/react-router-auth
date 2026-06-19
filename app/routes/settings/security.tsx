@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { MiddlewareFunction } from "react-router";
 import { requireAuth } from "~/middlewares/requireAuth";
-import { getUserTwoFactor } from "~/models/twoFactor";
 import { AuthenticatorQrCode } from "~/pages/settings/AuthenticatorQrCode";
 import ConfirmTwoFactorModal from "~/pages/settings/ConfirmTwoFactorModal";
 import Heading from "~/pages/settings/Heading";
@@ -12,13 +11,18 @@ import UpdatePasswordForm from "~/pages/settings/UpdatePasswordForm";
 import { requireAuth as requireAuthContext } from "~/utils/auth-gurads";
 import type { Route } from "./+types/security";
 import TwoFactorSetupCard from "./TwoFactorSetupCard";
+import { TwoFactorRepository } from "~/repositories/two-factor";
+import { db } from "~/db/client";
 
 export const middleware: MiddlewareFunction<Response>[] = [requireAuth];
 
 export async function loader({ context }: Route.LoaderArgs) {
     const contextValue = requireAuthContext(context);
 
-    const twoFactor = await getUserTwoFactor(contextValue.userId);
+    const twoFactorRepository = new TwoFactorRepository(db);
+    const twoFactor = await twoFactorRepository.findForUser(
+        contextValue.userId,
+    );
 
     return { isTwoFactorActive: Boolean(twoFactor && twoFactor.confirmedAt) };
 }

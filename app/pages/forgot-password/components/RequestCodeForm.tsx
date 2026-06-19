@@ -40,7 +40,7 @@ export default function RequestCodeForm({
         } else {
             onSubmitSuccess(getValues("email"));
         }
-    }, [fetcher]);
+    }, [fetcher.data]);
 
     const submitOptions = {
         method: "post",

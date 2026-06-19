@@ -1,18 +1,21 @@
-import { getUserTwoFactor, updateTwoFactor } from "~/models/twoFactor";
 import { requireAuth } from "~/utils/auth-gurads";
 import { generateRecoveryCodes, hashRecoveryCodes } from "~/utils/two-factor";
 import type { Route } from "./+types/generate-recovery-codes";
+import { TwoFactorRepository } from "~/repositories/two-factor";
+import { db } from "~/db/client";
 
 export async function action({ context }: Route.ActionArgs) {
     const contextValue = requireAuth(context);
-
-    const tfaConfig = await getUserTwoFactor(contextValue.userId);
+    const twoFactorRepository = new TwoFactorRepository(db);
+    const tfaConfig = await twoFactorRepository.findForUser(
+        contextValue.userId,
+    );
 
     if (!tfaConfig || !tfaConfig.confirmedAt) return { ok: false } as const;
 
-    const recoveryCodes = await generateRecoveryCodes();
+    const recoveryCodes = generateRecoveryCodes();
 
-    await updateTwoFactor(tfaConfig.id, {
+    await twoFactorRepository.update(tfaConfig.id, {
         recoveryCodes: hashRecoveryCodes(recoveryCodes),
     });
 

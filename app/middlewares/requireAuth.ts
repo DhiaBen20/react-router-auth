@@ -12,23 +12,17 @@ export const requireAuth: MiddlewareFunction<Response> = async (
 ) => {
     const accessToken = await getCookie(request, authCookie, z.string());
     const payload = accessToken ? await verifyAccessToken(accessToken) : null;
-
     if (payload) {
         context.set(authContext, payload);
-
         return;
     }
 
     const url = new URL(request.url);
-
     const refreshToken = await getCookie(request, refreshCookie, z.string());
-
     if (!refreshToken) throw redirect(`/login?returnTo=${url.pathname}`);
 
     const result = await refreshSession(refreshToken);
-
     if (!result) throw redirect(`/login?returnTo=${url.pathname}`);
-
     context.set(authContext, {
         type: "auth",
         email: result.user.email,
